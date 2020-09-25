@@ -50,7 +50,10 @@ public class connLdap {
         String[] bc = {"dc=monokee,dc=local"};
         properties.setPropertyValue("baseContexts", bc);
         String[] oC = {"groupOfNames"};
-        properties.setPropertyValue("accountObjectClasses", oC);
+        properties.setPropertyValue("groupObjectClasses", oC);
+        
+        String[] uC = {"user"};
+        properties.setPropertyValue("accountObjectClasses", uC);
 
         //properties.setPropertyValue("filterWithOrInsteadOfAnd", true);
 
@@ -67,7 +70,7 @@ public class connLdap {
             results.add(obj);
             return true;
         };
-        conn.search(ObjectClass.ACCOUNT, filter, handler,null);
+        conn.search(ObjectClass.GROUP, filter, handler,null);
 
         System.out.println("size: "+ results.size());
         for (ConnectorObject result : results) {
