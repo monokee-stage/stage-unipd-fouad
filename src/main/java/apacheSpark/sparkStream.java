@@ -10,12 +10,10 @@ public class sparkStream {
         SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount");
         JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(5));
 
-
         //Create a DStream that will connect to hostname:port, like localhost:9999
 
         JavaReceiverInputDStream<String> lines = jssc.receiverStream(new JavaCustomReceiver("localhost",8000));
-
-
+        
         // Print the first ten elements of each RDD generated in this DStream to the console
         lines.print();
         jssc.start();              // Start the computation

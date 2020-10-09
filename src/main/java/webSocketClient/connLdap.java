@@ -165,7 +165,6 @@ public class connLdap {
         sockClient.close();
     }
 
-
     private Uid findUid(String dn, String type) {
         Filter leftFilter = FilterBuilder.equalTo(AttributeBuilder.build("__NAME__", dn));
         Filter filter = FilterBuilder.and(leftFilter);

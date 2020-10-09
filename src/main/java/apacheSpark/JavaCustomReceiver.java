@@ -39,7 +39,6 @@ public class JavaCustomReceiver extends Receiver<String> {
         String userInput = null;
 
         try {
-
             ServerSocket attesa=new ServerSocket(port);
             // connect to the server
             socket =attesa.accept();
