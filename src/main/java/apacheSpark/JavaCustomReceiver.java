@@ -1,16 +1,7 @@
-package stream;
+package apacheSpark;
 
-import com.google.common.io.Closeables;
-
-import org.apache.spark.SparkConf;
 import org.apache.spark.storage.StorageLevel;
-import org.apache.spark.streaming.Duration;
-import org.apache.spark.streaming.api.java.JavaDStream;
-import org.apache.spark.streaming.api.java.JavaPairDStream;
-import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.receiver.Receiver;
-import scala.Tuple2;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -18,8 +9,7 @@ import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.regex.Pattern;
+
 public class JavaCustomReceiver extends Receiver<String> {
 
     String host = null;

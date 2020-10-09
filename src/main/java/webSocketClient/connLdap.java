@@ -138,7 +138,7 @@ public class connLdap {
             System.out.println(json.toJson(accGrouLdap));
             sockClient.sendMessage(json.toJson(accGrouLdap));
             try {
-                Thread.sleep(500);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -157,7 +157,7 @@ public class connLdap {
              json =new Gson();
              sockClient.sendMessage(json.toJson(accGrouLdap));
              try {
-                  Thread.sleep(500);
+                  Thread.sleep(100);
              } catch (InterruptedException e) {
                   e.printStackTrace();
              }

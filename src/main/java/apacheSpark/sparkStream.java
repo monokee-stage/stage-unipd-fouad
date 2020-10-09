@@ -1,4 +1,4 @@
-package stream;
+package apacheSpark;
 
 import org.apache.spark.*;
 import org.apache.spark.streaming.*;
