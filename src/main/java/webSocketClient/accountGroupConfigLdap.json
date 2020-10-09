@@ -1,0 +1,10 @@
+{
+  "uri":"ws://localhost:4444/monokee_apache_spark_integration_war/echo",
+  "baseDN":"dc=monokee,dc=local",
+  "groups":{
+    "objectClassFilter":["groupOfNames"],
+  },
+  "accounts":{
+    "objectClassFilter":["inetOrgPerson"],
+  }
+}
