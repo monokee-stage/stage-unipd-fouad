@@ -32,8 +32,6 @@ public class accountOrGroupLdap {
     private void setCn(ConnectorObject cO){
         if(cO.getAttributeByName("cn")!=null){
             this.cn=cO.getAttributeByName("cn").getValue().get(0).toString();
-            System.out.println(cO.getAttributeByName("cn").getValue().get(0).toString());
-
         }
     }
     private void setSn(ConnectorObject cO){
@@ -62,7 +60,6 @@ public class accountOrGroupLdap {
             for (int i=0;i<cO.getAttributeByName("member").getValue().size();i++ )
             {
                 this.member.add(cO.getAttributeByName("member").getValue().get(i).toString());
-                System.out.println(member.get(i));
             }
         }
     }

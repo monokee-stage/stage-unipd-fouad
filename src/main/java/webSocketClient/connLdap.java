@@ -95,26 +95,29 @@ public class connLdap {
             // search where objectClass=groupOfNames for only group
             JSONObject jsonGroups= (JSONObject) jsonObject.get("groups");
             JSONArray objectClassGroup = (JSONArray)jsonGroups.get("objectClassFilter");
-            String[] oC=new String[objectClassGroup.size()];
-            int i=0;
-            for (Object objCGroup : objectClassGroup)
-            {
-                oC[i]=objCGroup.toString();
-                i++;
-            }
-            properties.setPropertyValue("groupObjectClasses", oC);
+            int i = 0;
+            if(objectClassGroup.size()!=0) {
+                String[] oC = new String[objectClassGroup.size()];
 
+                for (Object objCGroup : objectClassGroup) {
+                    oC[i] = objCGroup.toString();
+                    i++;
+                }
+                properties.setPropertyValue("groupObjectClasses", oC);
+            }
             // search where objectClass=inetOrgPerson for only accounts
             JSONObject jsonAccount= (JSONObject) jsonObject.get("accounts");
             JSONArray objectClassAccounts = (JSONArray)jsonAccount.get("objectClassFilter");
-            String[] uC=new String[objectClassAccounts.size()];
-             i=0;
-            for (Object objAcc : objectClassAccounts)
-            {
-                uC[i]=objAcc.toString();
-                i++;
+
+            if(objectClassAccounts.size()!=0) {
+                String[] uC = new String[objectClassAccounts.size()];
+                i = 0;
+                for (Object objAcc : objectClassAccounts) {
+                    uC[i] = objAcc.toString();
+                    i++;
+                }
+                properties.setPropertyValue("accountObjectClasses", uC);
             }
-            properties.setPropertyValue("accountObjectClasses", uC);
         } catch(IOException | ParseException e) {
             System.out.println("File or parse exception: "+e);
         }
@@ -135,7 +138,7 @@ public class connLdap {
         for (ConnectorObject result : results) {
             accountOrGroupLdap accGrouLdap=new accountOrGroupLdap(result);
             json =new Gson();
-            System.out.println(json.toJson(accGrouLdap));
+            //System.out.println(json.toJson(accGrouLdap));
             sockClient.sendMessage(json.toJson(accGrouLdap));
             try {
                 Thread.sleep(100);
