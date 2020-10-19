@@ -1,7 +1,4 @@
 package webSocketClient;
-
-import org.apache.directory.api.ldap.model.entry.Entry;
-import org.apache.directory.api.ldap.model.entry.Value;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
 
 import java.util.Vector;

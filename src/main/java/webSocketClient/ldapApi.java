@@ -1,12 +1,16 @@
 package webSocketClient;
 
-import com.google.gson.Gson;
+
 import org.apache.directory.api.ldap.model.cursor.CursorException;
+import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
-import org.apache.directory.api.ldap.model.entry.*;
+import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.message.*;
+import org.apache.directory.api.ldap.model.message.controls.PagedResults;
+import org.apache.directory.api.ldap.model.message.controls.PagedResultsImpl;
 import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.json.simple.JSONArray;
@@ -26,8 +30,8 @@ public class ldapApi {
     SearchRequest reqGroups = null;
     SearchRequest reqAccounts =  null;
     final private String pathJson="src/main/java/webSocketClient/accountGroupConfigApi.json";
-    Gson g=new Gson();
     socketClient socketClient;
+    int page;
     private void setReqAccounts(JSONObject accounts){
         try {
             /********* parse accounts from json *******/
@@ -38,9 +42,9 @@ public class ldapApi {
                 reqAccounts.setFilter(jsonAccounts.get("filter").toString() );
                 String scopeAccounts = jsonAccounts.get("scope").toString();
                 switch (scopeAccounts) {
-                    case "subtree" -> reqAccounts.setScope(SearchScope.SUBTREE);
+                    case "subtree" ->reqAccounts.setScope(SearchScope.SUBTREE);
                     case "object" -> reqAccounts.setScope(SearchScope.OBJECT);
-                    case "onelevel" -> reqAccounts.setScope(SearchScope.ONELEVEL);
+                    case "onelevel" ->reqAccounts.setScope(SearchScope.ONELEVEL);
                 }
 
                 JSONArray attributesAccounts = (JSONArray)jsonAccounts.get("attributes");
@@ -64,9 +68,9 @@ public class ldapApi {
                 reqGroups.setFilter((String) jsonGroups.get("filter"));
                 String scopeGroups = (String) jsonGroups.get("scope");
                 switch (scopeGroups) {
-                    case "subtree" -> reqGroups.setScope(SearchScope.SUBTREE);
-                    case "object" -> reqGroups.setScope(SearchScope.OBJECT);
-                    case "onelevel" -> reqGroups.setScope(SearchScope.ONELEVEL);
+                    case "subtree"->reqGroups.setScope(SearchScope.SUBTREE);
+                    case "object"-> reqGroups.setScope(SearchScope.OBJECT);
+                    case "onelevel"->reqGroups.setScope(SearchScope.ONELEVEL);
                 }
 
                 JSONArray attributesGroups = (JSONArray) jsonGroups.get("attributes");
@@ -74,6 +78,7 @@ public class ldapApi {
                     reqGroups.addAttributes(attG.toString());
                 }
             }
+
         }
         catch(Exception e) {
             System.out.println("Set groups filter exception: "+e);
@@ -91,6 +96,7 @@ public class ldapApi {
             catch (URISyntaxException e) {
                 System.out.println("socketClient not connected"+e);
             }
+            page=Integer.parseInt(jsonObject.get("pageSize").toString());
             setReqAccounts(jsonObject);
             setReqGroups(jsonObject);
         } catch(IOException | ParseException e) {
@@ -114,99 +120,69 @@ public class ldapApi {
         if(socketClient.isClosed()){
             socketClient.reconnect();
         }
-        try{
-//(&(objectClass=person)(memberOf=cn=developers,ou=groups,dc=monokee,dc=local))
-            // Process the request
-            if(reqGroups!=null){
-                SearchCursor searchGroups = connection.search(reqGroups);
-                String jsonResults="{ \"groups\": { ";
-                while ( searchGroups.next() )
-                {
-                    Response response = searchGroups.get();
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        searchOperationByReq(reqGroups, "groups");
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        searchOperationByReq(reqAccounts, "accounts");
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        socketClient.close();
+    }
+    private void searchOperationByReq(SearchRequest reqSearch,String nameTypeSearch){
 
-                    // process the SearchResultEntry
-                    if ( response instanceof SearchResultEntry)
+        if(reqSearch!=null){
+            // Create the control, and tell it we want N entries for every call
+            PagedResults pagedControl = new PagedResultsImpl();
+            pagedControl.setSize( page );
+
+            try{
+                while (true){
+                    reqSearch.addControl(pagedControl);
+                    SearchCursor searchResults = connection.search( reqSearch );
+
+                    parseToJsonApi jsn=new parseToJsonApi();
+                    jsn.parseJson(searchResults,nameTypeSearch);
+                    socketClient.sendMessage(jsn.getJson());
+                    // Now check the returned controls
+                    Map<String, Control> controls =  searchResults.getSearchResultDone().getControls();
+
+                    // We should get a PagedResult response
+                    PagedResults responseControl = ( PagedResults ) controls.get( PagedResults.OID );
+
+                    if ( responseControl != null )
                     {
-                        Entry resultEntry = ( ( SearchResultEntry ) response ).getEntry();
+                        // check if this is over, ie the cookie is empty
+                        byte[] cookie = responseControl.getCookie();
 
-                        accountOrGroupApi a =new accountOrGroupApi(resultEntry);
-                        System.out.println( "-------JSON--------");
-                        System.out.println( g.toJson(a));
-
-                        socketClient.sendMessage(g.toJson(a));
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                        if ( Strings.isEmpty( cookie ) )
+                        {
+                            // Ok, we are done
+                            break;
                         }
+
+                        // Prepare the next iteration, sending a bad cookie
+                        pagedControl.setCookie( cookie );
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }
-            if(reqAccounts!=null){
-                SearchCursor searchAccounts = connection.search(reqAccounts);
-
-                while ( searchAccounts.next() )
-                {
-                    Response response = searchAccounts.get();
-
-                    // process the SearchResultEntry
-                    if ( response instanceof SearchResultEntry)
-                    {
-                        Entry resultEntry = ( ( SearchResultEntry ) response ).getEntry();
-
-                        accountOrGroupApi a =new accountOrGroupApi(resultEntry);
-                        System.out.println( "-------JSON--------");
-                        System.out.println( g.toJson(a));
-
-                        socketClient.sendMessage(g.toJson(a));
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
+            catch (LdapException | CursorException e){
+                System.out.println("Error during search: "+e);
             }
-
-            socketClient.close();
-        }
-        catch (LdapException | CursorException e) {
-            System.out.println("Error in search "+e);
-        }
-    }
-    public void addUSer() {
-        try{
-            connection.add(
-                    new DefaultEntry(
-                            "cn=test,ou=people,dc=monokee,dc=local",
-                            "objectClass: inetOrgPerson",
-                            "objectClass: organizationalPerson",
-                            "objectClass: person",
-                            "objectClass: top",
-                            "postalAddress: via roma 5.i9",
-                            "cn: test",
-                            "sn: testProva") );
-        }catch (LdapException e){
-            System.out.println("Error in add "+e);
-        }
-
-    }
-    public void modifyUser(){
-        try{
-            Modification addedGivenName = new DefaultModification( ModificationOperation.REPLACE_ATTRIBUTE, "telephoneNumber",
-                "sssss" );
-
-            connection.modify( "cn=testadd,ou=people,dc=monokee,dc=local", addedGivenName );
-        }catch (LdapException e){
-            System.out.println("Error in modify "+e);
-        }
-    }
-    public void deleteUser()  {
-        try{
-            connection.delete("cn=testadd,ou=people,dc=monokee,dc=local");
-        }
-        catch (LdapException e) {
-            System.out.println("Error in delete user "+e);
         }
     }
     public void closeConnection()  {
@@ -218,11 +194,11 @@ public class ldapApi {
             System.out.println("Error in close connection "+e);
         }
     }
-
-    public static void main(String[] args) throws URISyntaxException, InterruptedException {
+    public static void main(String[] args) throws URISyntaxException, InterruptedException, CursorException, LdapException, IOException {
         final ldapApi apiL = new ldapApi();
         apiL.readJsonConfig();
         apiL.openConnectionSocketClient();
+      //  apiL.setConnection();
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -241,16 +217,13 @@ public class ldapApi {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+
                 apiL.closeConnection();
             }
         }, 0, 15000);
 
-       // apiL.addUSer();
+
+        // apiL.addUSer();
        // apiL.modifyUser();
        // apiL.deleteUser();
     }

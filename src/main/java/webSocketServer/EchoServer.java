@@ -27,27 +27,18 @@ public class EchoServer {
      * sono state completate con successo ed è quindi possibile iniziare le comunicazioni.
      *
      */
-    Vector<String> v;
+    private Vector<String> dataReceived;
 
-    public void removeAll(){
-        v.removeAllElements();
-    }
-    public void addElements(String s){
-        v.addElement(s);
-    }
-    public Vector<String> get(){
-        return v;
-    }
-    public void print(){
+    private void print(){
          System.out.println("VECTOR message ricevuti ------------->");
-        for (int i=0;i<v.size();i++){
-            System.out.println(v.get(i));
+        for (int i = 0; i< dataReceived.size(); i++){
+            System.out.println(dataReceived.get(i));
         }
     }
 
     @OnOpen
     public void onOpen(Session session){
-        v=new Vector<>();
+        dataReceived =new Vector<>();
         System.out.println(session.getId() + " ha aperto una connessione");
         try {
             session.getBasicRemote().sendText("Connessione Stabilita!");
@@ -64,7 +55,7 @@ public class EchoServer {
     public void onMessage(String message, Session session){
 
         System.out.println("Ricevuto messaggio da: " + session.getId() + ": " + message);
-        addElements(message);
+        dataReceived.addElement(message);
 
         try {
             session.getBasicRemote().sendText(message);
@@ -87,8 +78,8 @@ public class EchoServer {
                 connessione = new Socket("localhost",8000);
                 OutputStream output=connessione.getOutputStream();
                 PrintWriter invioDati=new PrintWriter(output);
-                for (int i=0;i<v.size();i++){
-                    invioDati.println(v.get(i));
+                for (int i = 0; i< dataReceived.size(); i++){
+                    invioDati.println(dataReceived.get(i));
                 }
                 invioDati.close();
                 connessione.close();

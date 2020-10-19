@@ -1,6 +1,6 @@
 package webSocketClient;
 
-import com.google.gson.Gson;
+
 import org.identityconnectors.common.IOUtil;
 import org.identityconnectors.common.security.GuardedString;
 import org.identityconnectors.framework.api.*;
@@ -23,13 +23,13 @@ import java.net.URL;
 import java.util.*;
 
 public class connLdap {
-    ConnectorFacade conn;
-    socketClient sockClient;
+    private ConnectorFacade conn;
+    private socketClient sockClient;
     final private String pathJson="src/main/java/webSocketClient/accountGroupConfigLdap.json";
-    ConfigurationProperties properties;
-    Gson json;
+    private ConfigurationProperties properties;
+    private int pageSize;
 
-    public void setConnection() throws IOException {
+    public void setConnectionLdap() throws IOException {
         ConnectorInfoManagerFactory fact = ConnectorInfoManagerFactory.getInstance();
         File bundleDirectory = new File("connIdBundle");
         URL url = IOUtil.makeURL(bundleDirectory, "net.tirasa.connid.bundles.ldap-1.5.4.jar");
@@ -44,13 +44,18 @@ public class connLdap {
         // From the default APIConfiguration, retrieve the ConfigurationProperties.
         properties = apiConfig.getConfigurationProperties();
 
+        ResultsHandlerConfiguration resConf = apiConfig.getResultsHandlerConfiguration();
+        resConf.setEnableFilteredResultsHandler(true);
+        resConf.setFilteredResultsHandlerInValidationMode(true);
         // Print out what the properties are (not necessary)
         List propertyNames = properties.getPropertyNames();
         for (Object propName : propertyNames) {
             ConfigurationProperty prop = properties.getProperty((String) propName);
         }
         setProperties();
+
          conn = ConnectorFacadeFactory.getInstance().newInstance(apiConfig);
+
         // conn.validate();
     }
     public void openConnectionSocketClient(){
@@ -73,11 +78,12 @@ public class connLdap {
 
     }
     public void setProperties (){
+
         properties.setPropertyValue("host", "localhost");
         properties.setPropertyValue("port", 389);
         properties.setPropertyValue("principal", "cn=admin,dc=monokee,dc=local");
         properties.setPropertyValue("readSchema", true);
-
+       // properties.setPropertyValue("useBlocks",true);
         String s="admin";
         GuardedString guardedString = new GuardedString(s.toCharArray());
         properties.setPropertyValue("credentials", guardedString);
@@ -87,11 +93,10 @@ public class connLdap {
 
             JSONObject jsonObject = (JSONObject)obj;
 
-
             // baseDN
             String[] bc = {(String)jsonObject.get("baseDN")};
             properties.setPropertyValue("baseContexts", bc);
-
+            pageSize=Integer.parseInt(jsonObject.get("pageSize").toString());
             // search where objectClass=groupOfNames for only group
             JSONObject jsonGroups= (JSONObject) jsonObject.get("groups");
             JSONArray objectClassGroup = (JSONArray)jsonGroups.get("objectClassFilter");
@@ -121,51 +126,71 @@ public class connLdap {
         } catch(IOException | ParseException e) {
             System.out.println("File or parse exception: "+e);
         }
-
-        //properties.setPropertyValue("filterWithOrInsteadOfAnd", true);
     }
-    public void searchAccountOfGroup() {
+    public void search()  {
         if(sockClient.isClosed()){
             sockClient.reconnect();
         }
-        Vector<ConnectorObject> results = new Vector<ConnectorObject>();
-        ResultsHandler handler = obj -> {
-            results.add(obj);
-            return true;
-        };
-        conn.search(ObjectClass.GROUP,null, handler,null);
-
-        for (ConnectorObject result : results) {
-            accountOrGroupLdap accGrouLdap=new accountOrGroupLdap(result);
-            json =new Gson();
-            //System.out.println(json.toJson(accGrouLdap));
-            sockClient.sendMessage(json.toJson(accGrouLdap));
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        searchAccountOrGroup("groups");
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        System.out.println("------------------------------");
-            //Filter temp = FilterBuilder.equalTo(AttributeBuilder.build("__NAME__", results.get(0).getAttributeByName("member").getValue().get(i)));
+        searchAccountOrGroup("accounts");
+        sockClient.close();
 
+    }
+    private void searchAccountOrGroup(String nameTypeSearch)  {
+        System.out.println("**************************************");
+
+        Map<String, Object> searchOpt = new HashMap<String, Object>();
+        searchOpt.put(OperationOptions.OP_PAGE_SIZE,pageSize);
+        searchOpt.put(OperationOptions.OP_PAGED_RESULTS_COOKIE,null);
+        while (true){
             Vector<ConnectorObject> accountGroup = new Vector<ConnectorObject>();
-            ResultsHandler h = obj -> {
+            ResultsHandler accountHandler = obj -> {
                 accountGroup.add(obj);
                 return true;
             };
-            conn.search(ObjectClass.ACCOUNT, null, h, null);
-        for (ConnectorObject result : accountGroup) {
-             accountOrGroupLdap accGrouLdap=new accountOrGroupLdap(result);
-             json =new Gson();
-             sockClient.sendMessage(json.toJson(accGrouLdap));
-             try {
-                  Thread.sleep(100);
-             } catch (InterruptedException e) {
-                  e.printStackTrace();
-             }
+            System.out.println("------------------------------");
+
+            OperationOptions searchOptions = new OperationOptions(searchOpt);
+            SearchResult searchResults=null;
+            if (nameTypeSearch.equals("groups")) {
+                searchResults = conn.search(ObjectClass.GROUP, null, accountHandler, searchOptions);
+            }
+            else   if(nameTypeSearch.equals("accounts")){
+                searchResults = conn.search(ObjectClass.ACCOUNT, null, accountHandler, searchOptions);
+            }
+
+            if(searchResults != null){
+                parseToJsonConnId jsn=new parseToJsonConnId();
+                try{
+                    jsn.parseJson(accountGroup,nameTypeSearch);
+                }
+                catch (Exception e){
+                  System.out.println("Error in the parse: "+e);
+                }
+                sockClient.sendMessage(jsn.getJson());
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("iterazioni: "+accountGroup);
+                System.out.println(searchResults.getPagedResultsCookie());
+                System.out.println(searchResults.getRemainingPagedResults());
+                if(searchResults.getPagedResultsCookie()==null){
+                    break;
+                }
+                searchOpt.replace(OperationOptions.OP_PAGED_RESULTS_COOKIE,searchResults.getPagedResultsCookie());
+
+            }
+            else {
+                break;
+            }
         }
-        sockClient.close();
     }
 
     private Uid findUid(String dn, String type) {
@@ -185,17 +210,20 @@ public class connLdap {
         return  results.get(0).getUid();
     }
     private void closeConnection() {
+
     }
     public static void main(String[] args)  {
       connLdap ldapConn=new connLdap();
       ldapConn.openConnectionSocketClient();
+
+
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
 
             @Override
             public void run() {
                 try {
-                    ldapConn.setConnection();
+                    ldapConn.setConnectionLdap();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -204,7 +232,7 @@ public class connLdap {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                ldapConn.searchAccountOfGroup();
+                ldapConn.search();
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
@@ -218,6 +246,7 @@ public class connLdap {
                 ldapConn.closeConnection();
             }
         }, 0, 15000);
+
 
     }
 }

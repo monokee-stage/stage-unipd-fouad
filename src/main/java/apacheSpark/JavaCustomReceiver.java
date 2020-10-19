@@ -11,13 +11,10 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 public class JavaCustomReceiver extends Receiver<String> {
+    private int port = -1;
 
-    String host = null;
-    int port = -1;
-
-    public JavaCustomReceiver(String host_ , int port_) {
+    public JavaCustomReceiver(int port_) {
         super(StorageLevel.MEMORY_AND_DISK_2());
-        host = host_;
         port = port_;
     }
 
