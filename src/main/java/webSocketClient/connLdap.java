@@ -245,7 +245,7 @@ public class connLdap {
                 }
                 ldapConn.closeConnection();
             }
-        }, 0, 15000);
+        }, 0, 25000);
 
 
     }

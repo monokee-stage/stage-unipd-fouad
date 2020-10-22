@@ -21,6 +21,7 @@ public class parseToJsonConnId {
             accountOrGroupLdap accGroupLdap=new accountOrGroupLdap(result);
             array.add(g.toJson(accGroupLdap));
         }
+        json.put("Company","lenovo");
         json.put(nameTypeSearch,array);
     }
 }

@@ -2,9 +2,7 @@ package webSocketClient;
 
 
 import org.apache.directory.api.ldap.model.cursor.CursorException;
-import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
-import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.message.*;
 import org.apache.directory.api.ldap.model.message.controls.PagedResults;
@@ -103,7 +101,7 @@ public class ldapApi {
            System.out.println("File or parse exception: "+e);
         }
     }
-    public void setConnection(){
+    public void setConnectionLdap(){
          connection = new LdapNetworkConnection( "localhost", 389 );
         try{
             connection.bind( "cn=admin,dc=monokee,dc=local", "admin" );
@@ -185,7 +183,7 @@ public class ldapApi {
             }
         }
     }
-    public void closeConnection()  {
+    public void closeConnectionLdap()  {
         try{
             connection.unBind();
             connection.close();
@@ -205,7 +203,7 @@ public class ldapApi {
 
             @Override
             public void run() {
-                apiL.setConnection();
+                apiL.setConnectionLdap();
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
@@ -218,9 +216,9 @@ public class ldapApi {
                     e.printStackTrace();
                 }
 
-                apiL.closeConnection();
+                apiL.closeConnectionLdap();
             }
-        }, 0, 15000);
+        }, 0, 25000);
 
 
         // apiL.addUSer();

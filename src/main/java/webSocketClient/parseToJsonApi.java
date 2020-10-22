@@ -33,6 +33,7 @@ public class parseToJsonApi {
                 array.add(g.toJson(a));
             }
         }
+        json.put("Company","acer");
         json.put(nameTypeSearch,array);
     }
 }
