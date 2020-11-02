@@ -6,6 +6,7 @@ import java.util.Vector;
 public class accountOrGroupLdap {
 
     //general
+    private String dn;
     private String cn;
     private String sn;
 
@@ -18,6 +19,7 @@ public class accountOrGroupLdap {
 
 
     public accountOrGroupLdap(ConnectorObject result){
+        setDn(result);
         setCn(result);
         setSn(result);
         setMail(result);
@@ -25,7 +27,11 @@ public class accountOrGroupLdap {
         setPostalAddress(result);
         setMember(result);
     }
-
+    private void setDn(ConnectorObject cO){
+        if(cO.getName()!=null){
+            this.dn=cO.getName().getNameValue();
+        }
+    }
     private void setCn(ConnectorObject cO){
         if(cO.getAttributeByName("cn")!=null){
             this.cn=cO.getAttributeByName("cn").getValue().get(0).toString();

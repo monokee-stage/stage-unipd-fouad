@@ -55,7 +55,6 @@ public class connLdap {
         setProperties();
 
          conn = ConnectorFacadeFactory.getInstance().newInstance(apiConfig);
-
         // conn.validate();
     }
     public void openConnectionSocketClient(){
@@ -179,8 +178,7 @@ public class connLdap {
                     e.printStackTrace();
                 }
                 System.out.println("iterazioni: "+accountGroup);
-                System.out.println(searchResults.getPagedResultsCookie());
-                System.out.println(searchResults.getRemainingPagedResults());
+
                 if(searchResults.getPagedResultsCookie()==null){
                     break;
                 }

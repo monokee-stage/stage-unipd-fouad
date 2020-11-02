@@ -7,6 +7,7 @@ import java.util.Vector;
 
 public class accountOrGroupApi {
     //general
+    private String dn;
     private String cn;
     private String sn;
 
@@ -19,6 +20,7 @@ public class accountOrGroupApi {
 
 
     public accountOrGroupApi(Entry result){
+        setDn(result);
         setCn(result);
         setSn(result);
         setMail(result);
@@ -26,7 +28,11 @@ public class accountOrGroupApi {
         setPostalAddress(result);
         setMember(result);
     }
-
+    private void setDn(Entry r){
+        if(r.getDn()!=null){
+            this.dn=r.getDn().toString();
+        }
+    }
     private void setCn(Entry r){
         if(r.get("cn")!=null){
             this.cn=r.get("cn").get().getString();
